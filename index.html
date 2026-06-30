@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Five Stand Card Generator V2</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 25px;
+      background: #f4f4f4;
+    }
+
+    h1, h2 {
+      text-align: center;
+    }
+
+    .box {
+      background: white;
+      padding: 15px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    .controls {
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    button, select, input {
+      font-size: 16px;
+      padding: 8px;
+      margin: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      font-size: 18px;
+      margin-top: 10px;
+    }
+
+    th, td {
+      border: 2px solid #333;
+      padding: 10px;
+      text-align: center;
+    }
+
+    th {
+      background: #ddd;
+    }
+
+    .small {
+      font-size: 14px;
+      color: #555;
+    }
+
+    .lock {
+      cursor: pointer;
+      font-size: 22px;
+    }
+
+    @media print {
+      .box, button, select, input, label {
+        display: none;
+      }
+
+      body {
+        background: white;
+      }
+
+      h1 {
+        margin-top: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Five Stand Target Card Generator V2</h1>
+
+  <div class="box">
+    <h2>Course Setup</h2>
+
+    <div class="controls">
+      <label>Number of traps:</label>
+      <select id="trapCount" onchange="buildTrapInputs()">
+        <option value="6">6</option>
+        <option value="8" selected>8</option>
+        <option value="10">10</option>
+        <option value="12">12</option>
+      </select>
+
+      <label>
+        <input type="checkbox" id="showNames">
+        Show target names
+      </label>
+
+      <label>
+        <input type="checkbox" id="avoidStandDuplicates" checked>
+        No duplicate trap on same stand
+      </label>
+    </div>
+
+    <div id="trapInputs"></div>
+  </div>
+
+  <div class="box">
+    <h2>Generate Card</h2>
+
+    <div class="controls">
+      <button onclick="generateCard()">Generate New Card</button>
+      <button onclick="window.print()">Print Card</button>
+      <button onclick="clearLocks()">Clear Locks</button>
+    </div>
+
+    <p class="small">
+      Tip: Click the lock beside a stand to keep that stand when generating a new card.
+    </p>
+  </div>
+
+  <h2 id="cardTitle">Five Stand Card</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Lock</th>
+        <th>Stand</th>
+        <th>1. Single</th>
+        <th>2. Report Pair</th>
+        <th>3. True Pair</th>
+      </tr>
+    </thead>
+    <tbody id="cardBody"></tbody>
+  </table>
+
+  <script>
+    let currentCard = [];
+    let lockedStands = [false, false, false, false, false];
+
+    const defaultNames = [
+      "Left Crosser",
+      "Right Crosser",
+      "Teal",
+      "Rabbit",
+      "Incoming",
+      "Outgoing",
+      "Quartering Left",
+      "Quartering Right",
+      "High Tower",
+      "Low Tower",
+      "Chandelle",
+      "Midi"
+    ];
+
+    function buildTrapInputs() {
+      const trapCount = Number(document.getElementById("trapCount").value);
+      const trapInputs = document.getElementById("trapInputs");
+
+      trapInputs.innerHTML = "";
+
+      for (let i = 1; i <= trapCount; i++) {
+        const div = document.createElement("div");
+
+        div.innerHTML = `
+          Trap ${i}:
+          <input id="trapName${i}" value="${defaultNames[i - 1] || "Target " + i}">
+        `;
+
+        trapInputs.appendChild(div);
+      }
+    }
+
+    function getTrapLabel(number) {
+      const showNames = document.getElementById("showNames").checked;
+
+      if (!showNames) {
+        return number;
+      }
+
+      const input = document.getElementById("trapName" + number);
+      return number + " - " + input.value;
+    }
+
+    function randomTrap(maxTrap) {
+      return Math.floor(Math.random() * maxTrap) + 1;
+    }
+
+    function randomPair(maxTrap, usedOnStand) {
+      let first;
+      let second;
+
+      do {
+        first = randomTrap(maxTrap);
+      } while (usedOnStand.includes(first));
+
+      usedOnStand.push(first);
+
+      do {
+        second = randomTrap(maxTrap);
+      } while (second === first || usedOnStand.includes(second));
+
+      usedOnStand.push(second);
+
+      return [first, second];
+    }
+
+    function generateStand(maxTrap) {
+      const avoidDuplicates = document.getElementById("avoidStandDuplicates").checked;
+      const usedOnStand = [];
+
+      let single = randomTrap(maxTrap);
+
+      if (avoidDuplicates) {
+        usedOnStand.push(single);
+      }
+
+      let reportPair;
+      let truePair;
+
+      if (avoidDuplicates && maxTrap >= 5) {
+        reportPair = randomPair(maxTrap, usedOnStand);
+        truePair = randomPair(maxTrap, usedOnStand);
+      } else {
+        reportPair = basicRandomPair(maxTrap);
+        truePair = basicRandomPair(maxTrap);
+      }
+
+      return {
+        single,
+        reportPair,
+        truePair
+      };
+    }
+
+    function basicRandomPair(maxTrap) {
+      let first = randomTrap(maxTrap);
+      let second;
+
+      do {
+        second = randomTrap(maxTrap);
+      } while (second === first);
+
+      return [first, second];
+    }
+
+    function generateCard() {
+      const maxTrap = Number(document.getElementById("trapCount").value);
+      const newCard = [];
+
+      for (let i = 0; i < 5; i++) {
+        if (lockedStands[i] && currentCard[i]) {
+          newCard.push(currentCard[i]);
+        } else {
+          newCard.push(generateStand(maxTrap));
+        }
+      }
+
+      currentCard = newCard;
+      displayCard();
+    }
+
+    function displayCard() {
+      const cardBody = document.getElementById("cardBody");
+      cardBody.innerHTML = "";
+
+      for (let i = 0; i < currentCard.length; i++) {
+        const stand = currentCard[i];
+
+        const row = document.createElement("tr");
+
+        const lockIcon = lockedStands[i] ? "🔒" : "🔓";
+
+        row.innerHTML = `
+          <td class="lock" onclick="toggleLock(${i})">${lockIcon}</td>
+          <td>${i + 1}</td>
+          <td>${getTrapLabel(stand.single)}</td>
+          <td>${getTrapLabel(stand.reportPair[0])} then ${getTrapLabel(stand.reportPair[1])}</td>
+          <td>${getTrapLabel(stand.truePair[0])} + ${getTrapLabel(stand.truePair[1])}</td>
+        `;
+
+        cardBody.appendChild(row);
+      }
+    }
+
+    function toggleLock(index) {
+      lockedStands[index] = !lockedStands[index];
+      displayCard();
+    }
+
+    function clearLocks() {
+      lockedStands = [false, false, false, false, false];
+      displayCard();
+    }
+
+    buildTrapInputs();
+    generateCard();
+  </script>
+
+</body>
+</html>
