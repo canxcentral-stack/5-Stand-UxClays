@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Five Stand Card Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: #f4f4f4;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .controls {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    button, select {
+      font-size: 18px;
+      padding: 10px;
+      margin: 5px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      font-size: 20px;
+    }
+
+    th, td {
+      border: 2px solid #333;
+      padding: 15px;
+      text-align: center;
+    }
+
+    th {
+      background: #ddd;
+    }
+
+    @media print {
+      button, select {
+        display: none;
+      }
+
+      body {
+        background: white;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Five Stand Target Card</h1>
+
+  <div class="controls">
+    <label>Number of traps:</label>
+    <select id="trapCount">
+      <option value="6">6</option>
+      <option value="8" selected>8</option>
+      <option value="10">10</option>
+      <option value="12">12</option>
+    </select>
+
+    <button onclick="generateCard()">Generate Card</button>
+    <button onclick="window.print()">Print</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Stand</th>
+        <th>1. Single</th>
+        <th>2. Report Pair</th>
+        <th>3. True Pair</th>
+      </tr>
+    </thead>
+    <tbody id="cardBody">
+    </tbody>
+  </table>
+
+  <script>
+    function randomTrap(maxTrap) {
+      return Math.floor(Math.random() * maxTrap) + 1;
+    }
+
+    function randomPair(maxTrap) {
+      let first = randomTrap(maxTrap);
+      let second;
+
+      do {
+        second = randomTrap(maxTrap);
+      } while (second === first);
+
+      return [first, second];
+    }
+
+    function generateCard() {
+      const maxTrap = Number(document.getElementById("trapCount").value);
+      const cardBody = document.getElementById("cardBody");
+
+      cardBody.innerHTML = "";
+
+      for (let stand = 1; stand <= 5; stand++) {
+        const single = randomTrap(maxTrap);
+        const reportPair = randomPair(maxTrap);
+        const truePair = randomPair(maxTrap);
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+          <td>${stand}</td>
+          <td>${single}</td>
+          <td>${reportPair[0]} then ${reportPair[1]}</td>
+          <td>${truePair[0]} + ${truePair[1]}</td>
+        `;
+
+        cardBody.appendChild(row);
+      }
+    }
+
+    generateCard();
+  </script>
+
+</body>
+</html>
